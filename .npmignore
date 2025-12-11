@@ -1,0 +1,15 @@
+#npm
+node_modules
+yarn.lock
+package-lock.json
+
+#dev
+src
+tsconfig.json
+eslint.config.js
+rollup.config.js
+
+.github
+.husky
+.vscode
+.prettierrc
