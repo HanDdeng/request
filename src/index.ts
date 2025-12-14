@@ -1,77 +1,106 @@
-import {
-  CreateRequestParams,
-  CreateRequestReturn,
-  InterceptorRequestParams,
-  RequestParams,
-  RequestResponse,
-  StoreValue,
-} from "@/types";
-import { pubSub } from "./utils";
+import { CreateRequestParams, InterceptorRequestParams, RequestParams, RequestResponse, StoreValue } from "@/types";
+import { pubSub, RequestAbortedError, RequestTimeoutError } from "./utils";
 
-// export function request<T>(params: RequestParams & { needResInfo: true }): Promise<RequestResponse<T>>;
+const map = new Map();
 
-// export function request<T>(params: RequestParams & { needResInfo?: false }): Promise<T>;
-
+/**
+ * 核心请求函数
+ * @param originParams 请求参数
+ * @returns Promise包装的响应数据或完整响应信息
+ */
+export async function request<T>(
+  params: Omit<RequestParams, "needResInfo"> & { needResInfo: true },
+): Promise<RequestResponse<T>>;
+export async function request<T>(params: Omit<RequestParams, "needResInfo"> & { needResInfo?: false }): Promise<T>;
 export async function request<T>(originParams: RequestParams): Promise<T | RequestResponse<T>> {
   const { interceptor, ...params } = originParams;
-  let timeoutId: number | undefined;
-  let abort = () => void 0;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
+  // 清理相关资源
+  function cleanup(signal: typeof req.signal) {
+    clearTimeout(timeoutId);
+    if (signal != void 0 && map.has(signal)) {
+      pubSub.unsubscribe("abortRequest", map.get(signal));
+      map.delete(signal);
+    }
+  }
+
+  // 构建请求参数对象
   let req: InterceptorRequestParams = {
     ...params,
     search: "",
     headers: { "Content-Type": "application/json", ...params.headers },
   };
 
-  if (params.methods === "GET" && params.data) {
+  // 根据请求方法处理数据
+  if (params.method === "GET" && params.data) {
+    // GET请求：将data转换为URL查询字符串
     req.search = "?" + new URLSearchParams(params.data as { [key: string]: StoreValue }).toString();
   } else {
-    req.body = JSON.stringify(params.data);
+    // 非GET请求：将data转换为JSON字符串
+    try {
+      req.body = JSON.stringify(params.data);
+    } catch (e) {}
   }
 
+  // 请求拦截器
   if (interceptor?.request) {
     req = interceptor.request(req);
   }
 
+  // 使用Promise.race实现超时控制和手动终止
   const resInfo = (await Promise.race([
+    // 主请求Promise
     fetch(req.url + req?.search, {
       headers: req.headers,
-      method: req.methods,
+      method: req.method,
       body: req.body,
     }),
+    // 控制Promise（超时和手动终止）
     new Promise((_, reject) => {
-      abort = () => {
-        clearTimeout(timeoutId);
-        pubSub.unsubscribe("abortRequest", abort);
-        reject(new Error("request aborted"));
-        console.log("abort");
-      };
-
       // 请求超时限制
       timeoutId = setTimeout(() => {
-        pubSub.unsubscribe("abortRequest", abort);
-        reject(new Error("request timeout"));
-        console.log("setTimeout");
+        cleanup(req.signal);
+        reject(new RequestTimeoutError());
       }, params.timeout);
 
       // 手动终止请求
-      pubSub.subscribe("abortRequest", abort, { once: true });
+      if (req.signal != void 0) {
+        // 定义终止回调函数
+        const abort = (abortSignal: typeof req.signal) => {
+          if (abortSignal === req.signal) {
+            cleanup(req.signal);
+            reject(new RequestAbortedError(abortSignal));
+          }
+        };
+        // 存储回调并订阅终止事件
+        map.set(req.signal, abort);
+        pubSub.subscribe("abortRequest", abort, { once: true });
+      }
     }),
   ])) as Response;
-  clearTimeout(timeoutId);
-  pubSub.unsubscribe("abortRequest", abort);
+  cleanup(req.signal);
 
-  console.log("resInfo", resInfo);
-
+  // 构建响应对象
   let res = { ...(resInfo ?? {}), data: void 0 } as RequestResponse<T>;
   try {
-    res.data = await resInfo.json();
-  } catch (e) {}
+    // 尝试解析响应数据为JSON
+    const contentType = resInfo.headers.get("content-type");
+    if (contentType?.includes("application/json")) {
+      res.data = await resInfo.json();
+    } else {
+      res.data = (await resInfo.text()) as any;
+    }
+  } catch (e) {
+    // JSON解析失败时保持data为undefined
+  }
 
+  // 响应拦截器
   if (interceptor?.response) {
     res = interceptor.response<T>(res);
   }
 
+  // 根据配置返回完整响应或仅返回数据
   if (originParams.needResInfo) {
     return res;
   } else {
@@ -79,16 +108,38 @@ export async function request<T>(originParams: RequestParams): Promise<T | Reque
   }
 }
 
-export function createRequest(options: CreateRequestParams): CreateRequestReturn {
+/**
+ * 创建预配置的请求函数
+ * @param options 全局配置选项
+ * @returns 配置好的请求函数
+ */
+export function createRequest(options: CreateRequestParams) {
   const { prefixUrl = "", timeout = 30 * 1000, interceptor } = options;
 
-  return <T>(params: RequestParams) => {
+  function callback<T>(params: Omit<RequestParams, "needResInfo"> & { needResInfo: true }): Promise<RequestResponse<T>>;
+  function callback<T>(params: Omit<RequestParams, "needResInfo"> & { needResInfo?: false }): Promise<T>;
+  function callback<T>(params: RequestParams): Promise<T | RequestResponse<T>> {
     params.url = prefixUrl + params.url;
     params.timeout = timeout;
-    return request<T>({ ...params, interceptor });
-  };
+    return request<T>({ ...params, interceptor } as StoreValue);
+  }
+
+  return callback;
 }
 
-export function abortRequest() {
-  pubSub.publish("abortRequest");
+/**
+ * 手动终止请求
+ * @param signal 请求标识符（symbol、string或number）
+ * @throws 当signal为undefined时抛出错误
+ */
+export function abortRequest(signal: symbol | string | number) {
+  if (signal == void 0) {
+    throw new Error("signal is required");
+  }
+  // 触发对应signal的终止事件
+  if (map.has(signal)) {
+    pubSub.publish("abortRequest", signal);
+  }
 }
+
+export type { CreateRequestParams, RequestResponse };

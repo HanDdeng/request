@@ -293,10 +293,10 @@ hasown@^2.0.2:
   dependencies:
     function-bind "^1.1.2"
 
-hd-pub-sub@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/hd-pub-sub/-/hd-pub-sub-1.0.5.tgz#3e7cb8fbb133de1ac55004939b4e5e100c36a751"
-  integrity sha512-GWOnZINFFMaBC4ArHRvHkMpUoc58KUgzsFkaDfJsWbq3dtH0AlV3h7EljN5RiOdRehJtZNbPFk2EbF/iL/NiVQ==
+hd-pub-sub@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.npmjs.org/hd-pub-sub/-/hd-pub-sub-1.0.6.tgz#0d82a54c199e6e1d6c4988c80b6e2e898f608384"
+  integrity sha512-B42OCUlRrlpPCK2CxSaYSKNJAJMxkpwJ3HHcuSYNkarst22B6zrwxMn2/431x0IAkNVAuBGxdHZVY4frmTFjUg==
 
 inflight@^1.0.4:
   version "1.0.6"

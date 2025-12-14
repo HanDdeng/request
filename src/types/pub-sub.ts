@@ -1,3 +1,3 @@
-export type PubSub = {
-  abortRequest: (signal: string) => void;
+export type Events = {
+  abortRequest: (signal: symbol | string | number) => void;
 };

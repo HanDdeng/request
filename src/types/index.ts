@@ -9,13 +9,14 @@ export type Interceptor = {
 };
 
 export interface RequestParams {
-  methods: "GET" | "POST";
+  method: "GET" | "POST";
   url: string;
   headers?: { [key: string]: StoreValue };
   data?: StoreValue;
   needResInfo?: boolean;
   timeout?: number;
   interceptor?: Interceptor;
+  signal?: symbol | string | number;
 }
 
 export interface RequestResponse<T> extends Response {

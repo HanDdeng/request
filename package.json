@@ -8,8 +8,14 @@
   "type": "module",
   "exports": {
     ".": {
-      "require": "./dist/cjs/index.cjs",
-      "import": "./dist/esm/index.js"
+      "require": {
+        "default": "./dist/cjs/index.cjs",
+        "types": "./dist/types/index.d.ts"
+      },
+      "import": {
+        "default": "./dist/esm/index.js",
+        "types": "./dist/types/index.d.ts"
+      }
     }
   },
   "scripts": {
@@ -37,6 +43,6 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "hd-pub-sub": "^1.0.5"
+    "hd-pub-sub": "^1.0.6"
   }
 }

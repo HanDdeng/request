@@ -1,5 +1,18 @@
+import { Events } from "@/types/pub-sub";
 import createPubSub from "hd-pub-sub";
-import type { PubSub } from "../../../pub-sub/dist/types/types";
-// import type { BasePubSub } from "../../../pub-sub";
 
-export const pubSub: PubSub<> = createPubSub();
+export const pubSub = createPubSub<Events>();
+
+export class RequestTimeoutError extends Error {
+  constructor() {
+    super("request timeout");
+    this.name = "RequestTimeoutError";
+  }
+}
+
+export class RequestAbortedError extends Error {
+  constructor(signal: string | symbol | number) {
+    super(`request is aborted: ${signal.toString()}`);
+    this.name = "RequestAbortedError";
+  }
+}

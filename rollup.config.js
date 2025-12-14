@@ -12,20 +12,20 @@ export default defineConfig({
     {
       dir: "./dist/cjs",
       format: "cjs",
-      sourcemap: false
+      sourcemap: "inline",
     },
 
     {
       dir: "./dist/esm",
-      sourcemap: false
+      sourcemap: "inline",
     },
     {
       file: "./dist/index.min.js",
       format: "umd",
       name: "hd-request", // UMD全局变量名
       plugins: [terser()],
-      sourcemap: true
-    }
+      sourcemap: true,
+    },
   ],
   plugins: [
     typescript({
@@ -33,14 +33,14 @@ export default defineConfig({
       outDir: undefined,
       declaration: false,
       declarationMap: false,
-      declarationDir: undefined
+      declarationDir: undefined,
     }),
     // terser(),
     clear({
       targets: ["dist"],
-      watch: true
+      watch: true,
     }),
     resolve(),
-    commonjs()
-  ]
+    commonjs(),
+  ],
 });
