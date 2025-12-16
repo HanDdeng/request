@@ -1,18 +1,13 @@
-import { CreateRequestParams, InterceptorRequestParams, RequestParams, RequestResponse, StoreValue } from "@/types";
+import { CreateRequestParams, InterceptorRequestParams, RequestParams, StoreValue } from "./types";
 import { pubSub, RequestAbortedError, RequestTimeoutError } from "./utils";
 
 const map = new Map();
 
-/**
- * 核心请求函数
- * @param originParams 请求参数
- * @returns Promise包装的响应数据或完整响应信息
- */
 export async function request<T>(
   params: Omit<RequestParams, "needResInfo"> & { needResInfo: true },
-): Promise<RequestResponse<T>>;
+): Promise<Response & { data: T }>;
 export async function request<T>(params: Omit<RequestParams, "needResInfo"> & { needResInfo?: false }): Promise<T>;
-export async function request<T>(originParams: RequestParams): Promise<T | RequestResponse<T>> {
+export async function request<T>(originParams: RequestParams): Promise<T | (Response & { data: T })> {
   const { interceptor, ...params } = originParams;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -82,7 +77,7 @@ export async function request<T>(originParams: RequestParams): Promise<T | Reque
   cleanup(req.signal);
 
   // 构建响应对象
-  let res = { ...(resInfo ?? {}), data: void 0 } as RequestResponse<T>;
+  let res = { ...(resInfo ?? {}), data: void 0 } as Response & { data: T };
   try {
     // 尝试解析响应数据为JSON
     const contentType = resInfo.headers.get("content-type");
@@ -116,12 +111,13 @@ export async function request<T>(originParams: RequestParams): Promise<T | Reque
 export function createRequest(options: CreateRequestParams) {
   const { prefixUrl = "", timeout = 30 * 1000, interceptor } = options;
 
-  function callback<T>(params: Omit<RequestParams, "needResInfo"> & { needResInfo: true }): Promise<RequestResponse<T>>;
+  function callback<T>(
+    params: Omit<RequestParams, "needResInfo"> & { needResInfo: true },
+  ): Promise<Response & { data: T }>;
   function callback<T>(params: Omit<RequestParams, "needResInfo"> & { needResInfo?: false }): Promise<T>;
-  function callback<T>(params: RequestParams): Promise<T | RequestResponse<T>> {
-    params.url = prefixUrl + params.url;
-    params.timeout = timeout;
-    return request<T>({ ...params, interceptor } as StoreValue);
+  function callback<T>(params: RequestParams) {
+    const url = prefixUrl + params.url;
+    return request<T>({ ...params, url, timeout, interceptor } as StoreValue);
   }
 
   return callback;
@@ -132,7 +128,7 @@ export function createRequest(options: CreateRequestParams) {
  * @param signal 请求标识符（symbol、string或number）
  * @throws 当signal为undefined时抛出错误
  */
-export function abortRequest(signal: symbol | string | number) {
+export function abortRequest(signal: RequestParams["signal"]) {
   if (signal == void 0) {
     throw new Error("signal is required");
   }
@@ -141,5 +137,3 @@ export function abortRequest(signal: symbol | string | number) {
     pubSub.publish("abortRequest", signal);
   }
 }
-
-export type { CreateRequestParams, RequestResponse };

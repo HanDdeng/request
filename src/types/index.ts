@@ -1,37 +1,29 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type StoreValue = any;
 
-export type InterceptorRequestParams = RequestParams & { search?: string; body?: string };
+export interface InterceptorRequestParams extends RequestParams {
+  search?: string;
+  body?: string;
+}
 
-export type Interceptor = {
+export interface Interceptor {
   request?: (params: InterceptorRequestParams) => InterceptorRequestParams;
-  response?: <T>(params: RequestResponse<T>) => RequestResponse<T>;
-};
+  response?: <T>(params: Response & { data: T }) => Response & { data: T };
+}
 
 export interface RequestParams {
-  method: "GET" | "POST";
-  url: string;
-  headers?: { [key: string]: StoreValue };
-  data?: StoreValue;
-  needResInfo?: boolean;
-  timeout?: number;
-  interceptor?: Interceptor;
-  signal?: symbol | string | number;
+  readonly method: "GET" | "POST";
+  readonly url: string;
+  readonly headers?: { [key: string]: StoreValue };
+  readonly data?: StoreValue;
+  readonly needResInfo?: boolean;
+  readonly timeout?: number;
+  readonly interceptor?: Interceptor;
+  readonly signal?: symbol | string | number;
 }
 
-export interface RequestResponse<T> extends Response {
-  data: T;
-}
-
-export type CreateRequestParams = {
+export interface CreateRequestParams {
   prefixUrl?: string;
   timeout?: number;
   interceptor?: Interceptor;
-};
-/**
- * @returns
- */
-export type CreateRequestReturn = {
-  <T>(params: RequestParams & { needResInfo?: false }): Promise<T>;
-  <T>(params: RequestParams & { needResInfo: true }): Promise<RequestResponse<T>>;
-};
+}
