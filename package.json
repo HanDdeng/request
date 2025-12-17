@@ -1,0 +1,48 @@
+{
+  "name": "hd-request",
+  "version": "1.0.0",
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.js",
+  "unpkg": "dist/index.min.js",
+  "types": "dist/types/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "require": {
+        "default": "./dist/cjs/index.cjs",
+        "types": "./dist/types/index.d.ts"
+      },
+      "import": {
+        "default": "./dist/esm/index.js",
+        "types": "./dist/types/index.d.ts"
+      }
+    }
+  },
+  "scripts": {
+    "build": "rollup -c && tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HanDdeng/request.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HanDdeng/request/issues"
+  },
+  "homepage": "https://github.com/HanDdeng/request#readme",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "rollup": "^4.53.3",
+    "rollup-plugin-clear": "^2.0.7",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "hd-pub-sub": "^1.0.6"
+  }
+}

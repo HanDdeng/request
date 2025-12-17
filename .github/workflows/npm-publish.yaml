@@ -1,0 +1,35 @@
+name: Publish to npm
+
+on:
+  pull_request:
+    branches:
+      - main # 监控主分支（根据实际情况设置，如 master 或 main）
+    types:
+      - closed # PR关闭或合并时触发
+
+jobs:
+  publish:
+    # 仅当 PR 合并时触发
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # 检出最新的代码
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22" # 设置 Node.js 版本
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build project
+        run: yarn build # 根据项目情况配置，如果不需要可以移除
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
