@@ -12,14 +12,14 @@ export interface Interceptor {
 }
 
 export interface RequestParams {
-  readonly method: "GET" | "POST";
+  readonly method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
   readonly url: string;
   readonly headers?: { [key: string]: StoreValue };
   readonly data?: StoreValue;
   readonly needResInfo?: boolean;
   readonly timeout?: number;
   readonly interceptor?: Interceptor;
-  readonly signal?: symbol | string | number;
+  readonly signal?: AbortSignal | symbol | string | number;
 }
 
 export interface CreateRequestParams {
